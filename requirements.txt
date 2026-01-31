@@ -1,0 +1,59 @@
+# Kinich Quantum - Python Requirements
+# Generated from pyproject.toml for Docker compatibility
+# For development, prefer: pip install -e .[dev,server,monitoring]
+
+# Quantum computing frameworks
+qiskit>=1.2.0
+qiskit-aer>=0.15.0
+qiskit-ibm-runtime>=0.28.0
+azure-quantum>=1.0.0
+cirq>=1.4.0
+pennylane>=0.38.0
+
+# Azure cloud integrations
+azure-identity>=1.19.0
+azure-keyvault-secrets>=4.9.0
+azure-storage-blob>=12.23.0
+
+# Blockchain integration
+substrate-interface>=1.7.9
+
+# Scientific computing
+numpy>=2.1.0
+scipy>=1.14.0
+
+# Configuration & validation
+pyyaml>=6.0.2
+python-dotenv>=1.0.1
+pydantic>=2.9.0
+pydantic-settings>=2.5.0
+
+# Logging & observability
+structlog>=24.4.0
+rich>=13.9.0
+
+# Security & cryptography
+cryptography>=42.0.4,<43.0.0
+pyjwt>=2.8.0
+
+# Async networking
+aiohttp>=3.10.0
+websockets>=13.1.0
+
+# Serialization & data handling
+msgpack>=1.0.0
+orjson>=3.10.0
+
+# Database
+asyncpg>=0.30.0
+psycopg2-binary>=2.9.0
+
+# API server (optional - include for server deployments)
+fastapi>=0.115.0
+uvicorn[standard]>=0.32.0
+python-multipart>=0.0.9
+
+# Monitoring (optional - include for production)
+prometheus-client>=0.21.0
+opentelemetry-api>=1.27.0
+opentelemetry-sdk>=1.27.0

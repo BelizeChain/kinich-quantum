@@ -1,0 +1,115 @@
+version: '3.8'
+
+services:
+  kinich-quantum:
+    image: belizechain/kinich:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: kinich-quantum-node
+    ports:
+      - "8888:8888"
+    volumes:
+      - quantum-results:/app/results
+      - quantum-cache:/app/cache
+      - quantum-logs:/app/logs
+    environment:
+      # API Configuration
+      - KINICH_API_HOST=0.0.0.0
+      - KINICH_API_PORT=8888
+      - KINICH_ENV=development
+      
+      # Quantum Backend Configuration
+      - KINICH_MAX_CONCURRENT_JOBS=10
+      - KINICH_DEFAULT_BACKEND=qasm_simulator
+      - KINICH_ENABLE_ERROR_MITIGATION=true
+      
+      # Azure Quantum (Primary Backend)
+      - AZURE_QUANTUM_ENABLED=${AZURE_QUANTUM_ENABLED:-false}
+      - AZURE_QUANTUM_SUBSCRIPTION_ID=${AZURE_QUANTUM_SUBSCRIPTION_ID}
+      - AZURE_QUANTUM_RESOURCE_GROUP=${AZURE_QUANTUM_RESOURCE_GROUP}
+      - AZURE_QUANTUM_WORKSPACE=${AZURE_QUANTUM_WORKSPACE}
+      - AZURE_QUANTUM_LOCATION=${AZURE_QUANTUM_LOCATION:-eastus}
+      
+      # IBM Quantum (Fallback Backend)
+      - IBM_QUANTUM_ENABLED=${IBM_QUANTUM_ENABLED:-false}
+      - IBM_QUANTUM_TOKEN=${IBM_QUANTUM_TOKEN}
+      - IBM_QUANTUM_HUB=${IBM_QUANTUM_HUB:-ibm-q}
+      - IBM_QUANTUM_GROUP=${IBM_QUANTUM_GROUP:-open}
+      - IBM_QUANTUM_PROJECT=${IBM_QUANTUM_PROJECT:-main}
+      
+      # Blockchain Integration (optional)
+      - BLOCKCHAIN_RPC=${BLOCKCHAIN_RPC:-ws://localhost:9944}
+      - BLOCKCHAIN_ENABLED=${BLOCKCHAIN_ENABLED:-false}
+      
+      # Database Configuration
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DATABASE=kinich_quantum
+      - POSTGRES_USER=kinich
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-kinich_dev_password}
+      
+      # Circuit Optimization
+      - CIRCUIT_OPTIMIZATION_LEVEL=3
+      - MAX_QUBITS=127
+      - MAX_SHOTS=100000
+      
+      # Error Mitigation
+      - ZNE_ENABLED=true
+      - ZNE_NOISE_FACTORS=[1,2,3]
+      - READOUT_MITIGATION_ENABLED=true
+      
+      # Security
+      - JWT_SECRET=${JWT_SECRET:-dev_jwt_secret_change_in_production}
+      - KINICH_API_KEY=${KINICH_API_KEY:-dev_api_key}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8888/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+    restart: unless-stopped
+    networks:
+      - kinich-net
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: kinich-postgres
+    ports:
+      - "5433:5432"  # Use 5433 externally to avoid conflicts
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./sql/init_kinich.sql:/docker-entrypoint-initdb.d/init.sql
+    environment:
+      - POSTGRES_DB=kinich_quantum
+      - POSTGRES_USER=kinich
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-kinich_dev_password}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U kinich"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - kinich-net
+
+volumes:
+  quantum-results:
+    driver: local
+  quantum-cache:
+    driver: local
+  quantum-logs:
+    driver: local
+  postgres-data:
+    driver: local
+
+networks:
+  kinich-net:
+    driver: bridge
+    name: kinich-network
+    ipam:
+      config:
+        - subnet: 172.23.0.0/16

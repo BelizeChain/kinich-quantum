@@ -1,0 +1,52 @@
+# Coverage.py configuration for Kinich Quantum
+
+[run]
+source = kinich
+omit =
+    */tests/*
+    */test_*.py
+    */__pycache__/*
+    */site-packages/*
+    */dist-packages/*
+    */.venv/*
+    */venv/*
+    setup.py
+
+branch = True
+parallel = True
+
+[report]
+precision = 2
+show_missing = True
+skip_covered = False
+
+exclude_lines =
+    # Standard pragma
+    pragma: no cover
+    
+    # Don't complain about missing debug-only code
+    def __repr__
+    if self\.debug
+    
+    # Don't complain if tests don't hit defensive assertion code
+    raise AssertionError
+    raise NotImplementedError
+    
+    # Don't complain if non-runnable code isn't run
+    if 0:
+    if False:
+    if __name__ == .__main__.:
+    
+    # Type checking blocks
+    if TYPE_CHECKING:
+    @overload
+    
+    # Abstract methods
+    @abstractmethod
+    @abc.abstractmethod
+
+[html]
+directory = htmlcov
+
+[xml]
+output = coverage.xml
