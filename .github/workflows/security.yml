@@ -32,7 +32,7 @@ jobs:
         continue-on-error: true
 
       - name: Run Bandit security linter
-        run: bandit -r kinich/ -c pyproject.toml -f json -o bandit-report.json
+        run: bandit -r . -c pyproject.toml -f json -o bandit-report.json --exclude ./tests
 
       - name: Upload security reports
         uses: actions/upload-artifact@v4

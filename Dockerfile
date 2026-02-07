@@ -11,14 +11,17 @@ RUN apt-get update && \
     netcat-openbsd \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy package files first for better caching
-COPY pyproject.toml setup.py* README.md ./
+# Copy requirements first for better caching
+COPY requirements.txt ./
 
-# Install Python dependencies from pyproject.toml
-RUN pip install --no-cache-dir -e .[server,dev,monitoring]
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy kinich code
-COPY kinich/ ./kinich/
+# Copy all application code
+COPY . .
+
+# Set PYTHONPATH so flat-layout modules are importable
+ENV PYTHONPATH=/app
 
 # Create results directory
 RUN mkdir -p /app/results /app/logs /app/data
@@ -37,4 +40,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD curl -f http://localhost:8888/health || exit 1
 
 # Run the quantum service
-CMD ["python", "-m", "kinich.api_server"]
+CMD ["python", "api_server.py", "--host", "0.0.0.0", "--port", "8888"]
