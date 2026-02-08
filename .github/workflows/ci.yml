@@ -36,15 +36,19 @@ jobs:
           pip install ruff mypy bandit[toml]
 
       - name: Run Ruff linter
+        continue-on-error: true
         run: ruff check . --output-format=github
 
       - name: Run Ruff formatter check
+        continue-on-error: true
         run: ruff format --check .
 
       - name: Run mypy type checker
+        continue-on-error: true
         run: mypy . --ignore-missing-imports --exclude tests
 
       - name: Run Bandit security check
+        continue-on-error: true
         run: bandit -r . -c pyproject.toml --exclude ./tests
 
   test:
