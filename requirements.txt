@@ -21,6 +21,11 @@ substrate-interface>=1.7.9
 # Scientific computing
 numpy>=2.1.0
 scipy>=1.14.0
+scikit-learn>=1.5.0
+matplotlib>=3.9.0
+
+# Logging (used in source and tests)
+loguru>=0.7.0
 
 # Configuration & validation
 pyyaml>=6.0.2
