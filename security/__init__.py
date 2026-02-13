@@ -350,15 +350,40 @@ class SecurityManager:
     # ==================== ENCRYPTION ====================
     
     def encrypt_job_data(self, data: Dict[str, Any], user_key: str) -> str:
-        """Encrypt job data (placeholder - use real encryption in production)."""
-        # In production, use:
-        # - AES-256-GCM for symmetric encryption
-        # - RSA for key exchange
-        # - Proper key derivation (PBKDF2, scrypt)
+        """
+        Encrypt job data.
+        
+        ⚠️ PRODUCTION WARNING:
+        This is a PLACEHOLDER implementation using simple XOR.
+        For production use, REPLACE with:
+        - cryptography.fernet.Fernet (symmetric encryption)
+        - AES-256-GCM via cryptography.hazmat
+        - Or use PostQuantumCrypto for quantum-resistant encryption
+        
+        Args:
+            data: Data to encrypt
+            user_key: Encryption key
+            
+        Returns:
+            Hex-encoded encrypted data
+        """
+        import warnings
+        warnings.warn(
+            "encrypt_job_data uses INSECURE XOR encryption. "
+            "Replace with AES-256-GCM or Fernet for production!",
+            category=SecurityWarning,
+            stacklevel=2
+        )
         
         json_data = json.dumps(data)
         
-        # Simple XOR encryption (NOT SECURE - example only)
+        # INSECURE: XOR encryption (example only)
+        # TODO: Replace with:
+        # from cryptography.fernet import Fernet
+        # fernet = Fernet(user_key)
+        # encrypted = fernet.encrypt(json_data.encode())
+        # return encrypted.hex()
+        
         key_bytes = user_key.encode()
         encrypted = bytes([
             json_data.encode()[i] ^ key_bytes[i % len(key_bytes)]
@@ -368,7 +393,19 @@ class SecurityManager:
         return encrypted.hex()
     
     def decrypt_job_data(self, encrypted: str, user_key: str) -> Dict[str, Any]:
-        """Decrypt job data."""
+        """
+        Decrypt job data.
+        
+        ⚠️ PRODUCTION WARNING: Uses insecure XOR - see encrypt_job_data()
+        """
+        import warnings
+        warnings.warn(
+            "decrypt_job_data uses INSECURE XOR decryption. "
+            "Replace with AES-256-GCM or Fernet for production!",
+            category=SecurityWarning,
+            stacklevel=2
+        )
+        
         encrypted_bytes = bytes.fromhex(encrypted)
         key_bytes = user_key.encode()
         
@@ -511,3 +548,53 @@ class SecurityManager:
                 for role in Role
             },
         }
+
+
+# ==================== ZERO-KNOWLEDGE PROOFS ====================
+
+from kinich.security.zk_proofs import (
+    ZKProofGenerator,
+    ZKProof,
+    BatchProof,
+    ZKPublicInputs,
+    ZKPrivateInputs,
+    ProofSystem,
+    CircuitType,
+)
+
+# ==================== POST-QUANTUM CRYPTOGRAPHY ====================
+
+from kinich.security.post_quantum_crypto import (
+    PostQuantumCrypto,
+    PQCKeyPair,
+    PQCSignature,
+    QuantumKey,
+    SignatureScheme,
+    KEMScheme,
+)
+
+__all__ = [
+    # Core security classes
+    'SecurityManager',
+    'User',
+    'Role',
+    'Permission',
+    'AuditLogEntry',
+    
+    # Zero-knowledge proofs
+    'ZKProofGenerator',
+    'ZKProof',
+    'BatchProof',
+    'ZKPublicInputs',
+    'ZKPrivateInputs',
+    'ProofSystem',
+    'CircuitType',
+    
+    # Post-quantum cryptography
+    'PostQuantumCrypto',
+    'PQCKeyPair',
+    'PQCSignature',
+    'QuantumKey',
+    'SignatureScheme',
+    'KEMScheme',
+]

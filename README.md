@@ -32,9 +32,13 @@ See [INTEGRATION_ARCHITECTURE.md](INTEGRATION_ARCHITECTURE.md) for complete inte
 - 🌐 **Multi-Backend Support**: Seamlessly execute on Azure Quantum, IBM Quantum, Google Cirq, SpinQ, or local simulators
 - ⚛️ **Error Mitigation**: Readout error correction, Zero-Noise Extrapolation (ZNE), symmetry verification
 - 🔐 **Enterprise Security**: JWT/API key authentication, role-based access control, audit logging
+- 🛡️ **Post-Quantum Cryptography**: Falcon-512/1024 signatures, quantum-seeded keys for blockchain (NEW ✨)
+- 🔗 **Cross-Chain Bridge**: Ethereum and Polkadot XCM integration for quantum results and NFTs (NEW ✨)
+- 🔒 **Zero-Knowledge Proofs**: zkSNARK/zkSTARK for privacy-preserving quantum computing (NEW ✨)
 - 🌍 **Data Sovereignty**: Enforce data residency rules, compliance tracking (GDPR, PIPEDA, Belize DPA)
+- 📦 **DAG Storage**: IPFS-compatible content addressing with Merkle proofs (NEW ✨)
 - 📊 **Observability**: Distributed tracing, Prometheus metrics, SLA monitoring, alerting
-- 🔗 **Blockchain Integration**: Proof of Quantum Work (PQW) for validator rewards
+- 🔗 **Blockchain Integration**: Proof of Quantum Work (PQW), PoUW, PoSW, PoDW for validator rewards
 - 🚀 **High Performance**: Async I/O, job prioritization, circuit optimization
 - 🛠️ **Developer Friendly**: Type-safe APIs, comprehensive documentation, examples
 
@@ -212,6 +216,25 @@ docker-compose up -d
 ---
 
 ## 📚 Documentation
+
+### Core Guides
+
+- **[Quick Start Guide](docs/QUICKSTART.md)** - Get started with new features (DAG storage, cross-chain, ZK proofs)
+- **[Features Overview](docs/FEATURES_OVERVIEW.md)** - Complete feature documentation and use cases
+- **[API Reference](docs/API_REFERENCE.md)** - Complete Python API documentation
+- **[Deployment Guide](docs/DEPLOYMENT_GUIDE.md)** - Production deployment instructions
+
+### Advanced Topics
+
+- **[Blockchain Keys Guide](docs/BLOCKCHAIN_KEYS_GUIDE.md)** - Post-quantum signatures with Falcon (NEW ✨)
+- **[QML Architecture](docs/QML_ARCHITECTURE_GUIDE.md)** - Quantum machine learning system design
+- **[Hybrid Workflows](docs/HYBRID_WORKFLOW_TUTORIAL.md)** - Quantum-classical integration patterns
+
+### Project Information
+
+- **[QML Status](QML_STATUS.md)** - Quantum ML implementation status
+- **[Contributing](CONTRIBUTING.md)** - How to contribute to Kinich
+- **[Changelog](CHANGELOG.md)** - Version history and updates
 
 ### Configuration
 
@@ -428,10 +451,15 @@ Kinich implements comprehensive security and compliance features:
 
 - **Authentication**: JWT tokens, API keys, multi-factor authentication (MFA)
 - **Authorization**: Role-based access control (RBAC) with fine-grained permissions
+- **Post-Quantum Cryptography**: NIST-approved Falcon-512/1024 signatures for blockchain
+- **Quantum Key Generation**: True randomness from quantum hardware (BB84-inspired)
+- **Zero-Knowledge Proofs**: zkSNARK (Groth16, PLONK) and zkSTARK for privacy
 - **Audit Logging**: Encrypted audit trails for all operations
 - **Data Encryption**: TLS 1.3 for transport, AES-256 for storage
 - **Compliance**: GDPR, PIPEDA, Belize Data Protection Act support
 - **Sovereignty**: Enforce data residency rules by region/classification
+
+**See [Blockchain Keys Guide](docs/BLOCKCHAIN_KEYS_GUIDE.md) for post-quantum signature details.**
 
 ---
 

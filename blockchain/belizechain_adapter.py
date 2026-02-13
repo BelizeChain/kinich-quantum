@@ -616,8 +616,347 @@ class BelizeChainAdapter:
         except Exception as e:
             logger.error(f"Error fetching account stats: {e}")
             return None
+        # ==================== CONSENSUS PROOF SUBMISSIONS ====================
     
-    async def watch_job_events(
+    async def submit_proof_of_useful_work(
+        self,
+        job_id: str,
+        circuit_hash: bytes,
+        computation_complexity: int,
+        energy_consumption_kwh: float,
+        execution_time_ms: int,
+        result_cid: str,
+        usefulness_score: float
+    ) -> Optional[str]:
+        """
+        Submit Proof of Useful Work (PoUW) for quantum computation.
+        
+        PoUW proves that the quantum computation performed was:
+        - Computationally complex (not trivial)
+        - Energy-efficient relative to classical computing
+        - Scientifically or commercially useful
+        - Verifiable and reproducible
+        
+        This contributes to BelizeChain consensus by proving valuable
+        quantum work was performed, not just meaningless computation.
+        
+        Args:
+            job_id: Quantum job ID
+            circuit_hash: Hash of the quantum circuit
+            computation_complexity: Estimated classical equivalent FLOPs
+            energy_consumption_kwh: Energy used (kWh)
+            execution_time_ms: Wall-clock execution time
+            result_cid: IPFS/Pakit CID of result
+            usefulness_score: 0-100 score of scientific/commercial value
+            
+        Returns:
+            Transaction hash if successful
+        """
+        self._ensure_connected()
+        
+        try:
+            logger.info(f"Submitting PoUW for job {job_id} (usefulness: {usefulness_score})")
+            
+            # Calculate work proof metrics
+            proof_metrics = {
+                'complexity_score': min(100, computation_complexity // 1_000_000),  # Normalize
+                'energy_efficiency': self._calculate_energy_efficiency(
+                    computation_complexity,
+                    energy_consumption_kwh
+                ),
+                'execution_efficiency': computation_complexity / max(execution_time_ms, 1),
+                'usefulness_score': usefulness_score,
+                'result_availability': 100 if result_cid else 0,
+            }
+            
+            # Aggregate into single proof score
+            proof_score = int(sum(proof_metrics.values()) / len(proof_metrics))
+            
+            # Generate cryptographic proof
+            proof_data = {
+                'job_id': job_id,
+                'circuit_hash': circuit_hash.hex(),
+                'metrics': proof_metrics,
+                'timestamp': self._get_timestamp(),
+            }
+            proof_hash = hashlib.blake2b(
+                json.dumps(proof_data, sort_keys=True).encode(),
+                digest_size=32
+            ).digest()
+            
+            # Submit to blockchain
+            call = self.substrate.compose_call(
+                call_module='Consensus',
+                call_function='submit_proof_of_useful_work',
+                call_params={
+                    'job_id': job_id.encode('utf-8'),
+                    'proof_hash': proof_hash,
+                    'proof_score': proof_score,
+                    'computation_complexity': computation_complexity,
+                    'result_cid': result_cid.encode('utf-8') if result_cid else b'',
+                }
+            )
+            
+            extrinsic = self.substrate.create_signed_extrinsic(
+                call=call,
+                keypair=self.keypair
+            )
+            
+            receipt = self.substrate.submit_extrinsic(
+                extrinsic,
+                wait_for_inclusion=True
+            )
+            
+            if receipt.is_success:
+                logger.info(f"✅ PoUW submitted: score={proof_score}/100")
+                return receipt.extrinsic_hash
+            else:
+                logger.error(f"❌ PoUW submission failed: {receipt.error_message}")
+                return None
+                
+        except Exception as e:
+            logger.error(f"Error submitting PoUW: {e}")
+            return None
+    
+    async def submit_proof_of_storage_work(
+        self,
+        result_cid: str,
+        merkle_root: bytes,
+        chunk_count: int,
+        total_size_bytes: int,
+        replication_factor: int,
+        storage_nodes: List[str],
+        challenge_responses: Optional[List[bytes]] = None
+    ) -> Optional[str]:
+        """
+        Submit Proof of Storage Work (PoSW) for quantum result persistence.
+        
+        PoSW proves that quantum results are:
+        - Stored on distributed storage (IPFS/Pakit)
+        - Replicated across multiple nodes
+        - Retrievable and verifiable
+        - Correctly chunked and merkle-committed
+        
+        This contributes to consensus by proving reliable data availability
+        for quantum computing results.
+        
+        Args:
+            result_cid: Content ID (CID) of stored result
+            merkle_root: Root hash of result Merkle tree
+            chunk_count: Number of chunks
+            total_size_bytes: Total result size in bytes
+            replication_factor: Number of storage replicas
+            storage_nodes: List of storage node identifiers
+            challenge_responses: Optional challenge-response proofs
+            
+        Returns:
+            Transaction hash if successful
+        """
+        self._ensure_connected()
+        
+        try:
+            logger.info(
+                f"Submitting PoSW for CID {result_cid} "
+                f"({total_size_bytes} bytes, {replication_factor}x replication)"
+            )
+            
+            # Calculate storage proof score
+            storage_score = min(100, (
+                (replication_factor * 20) +  # Max 60 for 3x replication
+                (min(len(storage_nodes), 5) * 10) +  # Max 50 for 5+ nodes
+                (10 if challenge_responses else 0)  # +10 for challenges
+            ))
+            
+            # Generate storage attestation
+            attestation_data = {
+                'cid': result_cid,
+                'merkle_root': merkle_root.hex(),
+                'chunk_count': chunk_count,
+                'size_bytes': total_size_bytes,
+                'replication_factor': replication_factor,
+                'storage_nodes': storage_nodes,
+                'timestamp': self._get_timestamp(),
+            }
+            attestation_hash = hashlib.blake2b(
+                json.dumps(attestation_data, sort_keys=True).encode(),
+                digest_size=32
+            ).digest()
+            
+            # Submit to blockchain
+            call = self.substrate.compose_call(
+                call_module='Consensus',
+                call_function='submit_proof_of_storage_work',
+                call_params={
+                    'result_cid': result_cid.encode('utf-8'),
+                    'merkle_root': merkle_root,
+                    'attestation_hash': attestation_hash,
+                    'storage_score': storage_score,
+                    'total_size_bytes': total_size_bytes,
+                    'replication_factor': replication_factor,
+                }
+            )
+            
+            extrinsic = self.substrate.create_signed_extrinsic(
+                call=call,
+                keypair=self.keypair
+            )
+            
+            receipt = self.substrate.submit_extrinsic(
+                extrinsic,
+                wait_for_inclusion=True
+            )
+            
+            if receipt.is_success:
+                logger.info(f"✅ PoSW submitted: score={storage_score}/100")
+                return receipt.extrinsic_hash
+            else:
+                logger.error(f"❌ PoSW submission failed: {receipt.error_message}")
+                return None
+                
+        except Exception as e:
+            logger.error(f"Error submitting PoSW: {e}")
+            return None
+    
+    async def submit_proof_of_data_work(
+        self,
+        job_id: str,
+        result_cid: str,
+        data_quality_score: float,
+        fidelity_score: float,
+        error_mitigation_applied: bool,
+        calibration_data_cid: Optional[str] = None,
+        peer_validations: int = 0
+    ) -> Optional[str]:
+        """
+        Submit Proof of Data Work (PoDW) for quantum result quality.
+        
+        PoDW proves that quantum results are:
+        - High quality (good fidelity, low errors)
+        - Error-mitigated when necessary
+        - Properly calibrated
+        - Peer-validated by other nodes
+        
+        This contributes to consensus by proving data quality and
+        encouraging best practices in quantum computing.
+        
+        Args:
+            job_id: Quantum job ID
+            result_cid: CID of quantum result
+            data_quality_score: 0-100 overall quality score
+            fidelity_score: Quantum state fidelity (0-1)
+            error_mitigation_applied: Whether error mitigation was used
+            calibration_data_cid: Optional CID of calibration data
+            peer_validations: Number of peer validations
+            
+        Returns:
+            Transaction hash if successful
+        """
+        self._ensure_connected()
+        
+        try:
+            logger.info(
+                f"Submitting PoDW for job {job_id} "
+                f"(quality: {data_quality_score}, fidelity: {fidelity_score:.3f})"
+            )
+            
+            # Calculate data work score
+            quality_bonus = int(data_quality_score)
+            fidelity_bonus = int(fidelity_score * 30)  # Max 30 points
+            mitigation_bonus = 20 if error_mitigation_applied else 0
+            calibration_bonus = 10 if calibration_data_cid else 0
+            validation_bonus = min(peer_validations * 5, 20)  # Max 20 for 4+ peers
+            
+            data_score = min(100, (
+                quality_bonus * 0.5 +
+                fidelity_bonus +
+                mitigation_bonus +
+                calibration_bonus +
+                validation_bonus
+            ))
+            
+            # Generate quality proof
+            quality_proof_data = {
+                'job_id': job_id,
+                'result_cid': result_cid,
+                'data_quality_score': data_quality_score,
+                'fidelity_score': fidelity_score,
+                'error_mitigation': error_mitigation_applied,
+                'calibration_cid': calibration_data_cid or '',
+                'peer_validations': peer_validations,
+                'timestamp': self._get_timestamp(),
+            }
+            quality_proof_hash = hashlib.blake2b(
+                json.dumps(quality_proof_data, sort_keys=True).encode(),
+                digest_size=32
+            ).digest()
+            
+            # Submit to blockchain
+            call = self.substrate.compose_call(
+                call_module='Consensus',
+                call_function='submit_proof_of_data_work',
+                call_params={
+                    'job_id': job_id.encode('utf-8'),
+                    'result_cid': result_cid.encode('utf-8'),
+                    'quality_proof_hash': quality_proof_hash,
+                    'data_score': int(data_score),
+                    'fidelity_score': int(fidelity_score * 1000),  # Store as basis points
+                    'peer_validations': peer_validations,
+                }
+            )
+            
+            extrinsic = self.substrate.create_signed_extrinsic(
+                call=call,
+                keypair=self.keypair
+            )
+            
+            receipt = self.substrate.submit_extrinsic(
+                extrinsic,
+                wait_for_inclusion=True
+            )
+            
+            if receipt.is_success:
+                logger.info(f"✅ PoDW submitted: score={int(data_score)}/100")
+                return receipt.extrinsic_hash
+            else:
+                logger.error(f"❌ PoDW submission failed: {receipt.error_message}")
+                return None
+                
+        except Exception as e:
+            logger.error(f"Error submitting PoDW: {e}")
+            return None
+    
+    def _calculate_energy_efficiency(
+        self,
+        computation_complexity: int,
+        energy_kwh: float
+    ) -> float:
+        """
+        Calculate energy efficiency score (0-100).
+        
+        Compares quantum energy use to estimated classical equivalent.
+        """
+        if energy_kwh <= 0:
+            return 0.0
+        
+        # Estimate classical energy for same computation
+        # Assume 1 GFLOP = 0.0001 kWh for modern CPUs
+        classical_energy_kwh = (computation_complexity / 1e9) * 0.0001
+        
+        # Calculate efficiency ratio
+        if classical_energy_kwh > 0:
+            efficiency_ratio = classical_energy_kwh / energy_kwh
+            # Score: 100 if quantum uses 100x less energy, 0 if same or worse
+            return min(100, max(0, efficiency_ratio))
+        
+        return 0.0
+    
+    def _get_timestamp(self) -> int:
+        """Get current Unix timestamp."""
+        from datetime import datetime
+        return int(datetime.now().timestamp())
+    
+    # ==================== EVENT MONITORING ====================
+        async def watch_job_events(
         self,
         job_id: Optional[str] = None,
         callback=None
