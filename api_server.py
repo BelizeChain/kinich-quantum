@@ -52,10 +52,10 @@ class ServerConfig(BaseModel):
     """API server configuration."""
     
     host: str = Field(
-        default="127.0.0.1",
-        description="Server host (use 0.0.0.0 for Docker/cloud, set via KINICH_HOST env var)"
+        default="0.0.0.0",
+        description="Server host (0.0.0.0 for Docker/cloud, override via KINICH_HOST env var)"
     )
-    port: int = Field(default=8081, description="Server port")  # Changed from 8888 to 8081 for test compatibility
+    port: int = Field(default=8888, description="Server port (Docker container port)")
     workers: int = Field(default=1, description="Number of worker processes")
     reload: bool = Field(default=False, description="Auto-reload on code changes")
     
@@ -990,8 +990,8 @@ def main():
     )
     
     # Get configuration from environment
-    host = os.getenv("KINICH_HOST", "127.0.0.1")  # Localhost by default for security
-    port = int(os.getenv("PORT", "8081"))  # Changed from 8888 to 8081 for test compatibility
+    host = os.getenv("KINICH_HOST", "0.0.0.0")  # Listen on all interfaces for Docker
+    port = int(os.getenv("PORT", "8888"))  # Docker container port
     reload = os.getenv("RELOAD", "false").lower() == "true"
     workers = int(os.getenv("WORKERS", "1"))
     
