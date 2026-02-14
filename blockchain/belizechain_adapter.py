@@ -956,7 +956,7 @@ class BelizeChainAdapter:
         return int(datetime.now().timestamp())
     
     # ==================== EVENT MONITORING ====================
-        async def watch_job_events(
+    async def watch_job_events(
         self,
         job_id: Optional[str] = None,
         callback=None
