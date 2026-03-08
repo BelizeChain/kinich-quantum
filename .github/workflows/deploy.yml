@@ -12,7 +12,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  REGISTRY: belizechainregistry.azurecr.io
+  REGISTRY: belizechainacr.azurecr.io
   IMAGE_NAME: kinich-quantum
 
 jobs:
@@ -71,68 +71,43 @@ jobs:
           cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache
           cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache,mode=max
 
-  # ── 3. Deploy ──────────────────────────────────────────
+  # ── 3. Deploy to AKS ──────────────────────────────────
   deploy:
     needs: build
     runs-on: ubuntu-latest
     environment: production
-    env:
-      ACR_PASSWORD: ${{ secrets.ACR_PASSWORD }}
-      ACR_USERNAME: ${{ secrets.ACR_USERNAME }}
-      POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
-      POSTGRES_HOST: ${{ secrets.POSTGRES_HOST }}
-      REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
-      REDIS_HOST: ${{ secrets.REDIS_HOST }}
     steps:
-      - name: Setup SSH
+      - uses: actions/checkout@v4
+
+      - uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - uses: azure/aks-set-context@v4
+        with:
+          resource-group: ${{ secrets.AZURE_RESOURCE_GROUP }}
+          cluster-name: ${{ secrets.AKS_CLUSTER_NAME }}
+
+      - name: Deploy to AKS
         run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.VM_SSH_KEY }}" > ~/.ssh/deploy_key
-          chmod 600 ~/.ssh/deploy_key
+          kubectl set image deployment/kinich-quantum \
+            kinich-quantum=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }} \
+            -n belizechain
 
-      - name: Deploy to VM
-        continue-on-error: true
+          kubectl rollout status deployment/kinich-quantum \
+            -n belizechain --timeout=120s
+
+      - name: Verify health
         run: |
-          ssh -o StrictHostKeyChecking=no -o ConnectTimeout=30 \
-            -i ~/.ssh/deploy_key \
-            "${{ secrets.VM_USER }}@${{ secrets.VM_HOST }}" bash -s << ENDSSH
-          set -e
-
-          docker network create belizechain-net 2>/dev/null || true
-
-          echo "${ACR_PASSWORD}" | docker login belizechainregistry.azurecr.io \
-            -u "${ACR_USERNAME}" --password-stdin
-
-          docker pull belizechainregistry.azurecr.io/kinich-quantum:latest
-
-          docker stop kinich-quantum 2>/dev/null && docker rm kinich-quantum 2>/dev/null || true
-
-          docker run -d \
-            --name kinich-quantum \
-            --network belizechain-net \
-            --restart unless-stopped \
-            -p 8081:8888 \
-            -e DATABASE_URL="postgresql://belizechain:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:5432/kinich" \
-            -e REDIS_URL="rediss://:${REDIS_PASSWORD}@${REDIS_HOST}:6380/2" \
-            -e BLOCKCHAIN_WS_URL="ws://belizechain-node:9944" \
-            -e ENVIRONMENT=production \
-            -e LOG_LEVEL=info \
-            belizechainregistry.azurecr.io/kinich-quantum:latest
-
-          echo "Waiting for kinich-quantum to become healthy..."
-          for i in \$(seq 1 20); do
-            if curl -sf http://localhost:8081/health > /dev/null 2>&1; then
-              echo "✅ kinich-quantum is healthy"
+          POD=$(kubectl get pod -n belizechain -l app=kinich-quantum -o jsonpath='{.items[0].metadata.name}')
+          for i in $(seq 1 10); do
+            if kubectl exec -n belizechain "$POD" -- curl -sf http://localhost:8888/health > /dev/null 2>&1; then
+              echo "kinich-quantum is healthy"
               exit 0
             fi
-            echo "  Attempt \$i/20 — waiting 5s..."
+            echo "Attempt $i/10 — waiting 5s..."
             sleep 5
           done
-          echo "❌ kinich-quantum failed health check"
-          docker logs --tail 50 kinich-quantum
+          echo "Health check failed"
+          kubectl logs -n belizechain "$POD" --tail=50
           exit 1
-          ENDSSH
-
-      - name: Cleanup SSH key
-        if: always()
-        run: rm -f ~/.ssh/deploy_key
