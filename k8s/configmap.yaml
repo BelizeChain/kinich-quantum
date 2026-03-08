@@ -1,0 +1,45 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: kinich-quantum-config
+  namespace: belizechain
+  labels:
+    app.kubernetes.io/name: kinich-quantum
+    app.kubernetes.io/part-of: belizechain
+    app.kubernetes.io/component: quantum-compute
+data:
+  # API Configuration
+  KINICH_API_HOST: "0.0.0.0"
+  KINICH_API_PORT: "8888"
+  KINICH_ENV: "production"
+
+  # Quantum Backend Configuration
+  KINICH_MAX_CONCURRENT_JOBS: "10"
+  KINICH_DEFAULT_BACKEND: "qasm_simulator"
+  KINICH_ENABLE_ERROR_MITIGATION: "true"
+
+  # Azure Quantum (connector to real quantum hardware)
+  AZURE_QUANTUM_ENABLED: "true"
+  AZURE_QUANTUM_RESOURCE_GROUP: "BelizeChain"
+  AZURE_QUANTUM_WORKSPACE: "kinich-quantum"
+  AZURE_QUANTUM_LOCATION: "eastus"
+
+  # Circuit Optimization
+  CIRCUIT_OPTIMIZATION_LEVEL: "3"
+  MAX_QUBITS: "127"
+  MAX_SHOTS: "100000"
+
+  # Error Mitigation
+  ZNE_ENABLED: "true"
+  ZNE_NOISE_FACTORS: "[1,2,3]"
+  READOUT_MITIGATION_ENABLED: "true"
+
+  # Blockchain Integration (connect to belizechain-node in same namespace)
+  BLOCKCHAIN_RPC: "ws://belizechain-node:9944"
+  BLOCKCHAIN_ENABLED: "true"
+
+  # IBM Quantum (disabled by default — enable when token is set)
+  IBM_QUANTUM_ENABLED: "false"
+  IBM_QUANTUM_HUB: "ibm-q"
+  IBM_QUANTUM_GROUP: "open"
+  IBM_QUANTUM_PROJECT: "main"

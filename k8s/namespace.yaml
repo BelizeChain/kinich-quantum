@@ -1,0 +1,8 @@
+# Kinich Quantum uses the shared belizechain namespace
+# This file is a no-op if the namespace already exists
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: belizechain
+  labels:
+    app.kubernetes.io/part-of: belizechain
